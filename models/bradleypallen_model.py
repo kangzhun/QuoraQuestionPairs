@@ -4,19 +4,21 @@ from keras.layers import Embedding, TimeDistributed, Dense, Lambda, Merge, Batch
 from keras import backend as K
 
 EMBEDDING_DIM = 300
+MAX_LEN = 40
 
 
 class QuoraModel(object):
     def __init__(self, embedding_matrix):
-        self.model = self.create_model(embedding_matrix)
+        self.model = None
+        self.embedding_matrix = embedding_matrix
 
-    def create_model(self, embedding_matrix):
+    def create_model(self):
         input_query_1 = Input(shape=(None,), name='input_query_1', dtype='int32')
         input_query_2 = Input(shape=(None,), name='input_query_2', dtype='int32')
 
-        nb_words = len(embedding_matrix)
-        shared_embedding = Embedding(nb_words, EMBEDDING_DIM, weights=[embedding_matrix],
-                                     input_length=40, trainable=False)
+        nb_words = len(self.embedding_matrix)
+        shared_embedding = Embedding(nb_words, EMBEDDING_DIM, weights=[self.embedding_matrix],
+                                     input_length=MAX_LEN, trainable=False)
         q1_embedding_layer = shared_embedding(input_query_1)
         q1_time_distributed_layer = TimeDistributed(Dense(EMBEDDING_DIM, activation='relu'))(q1_embedding_layer)
         q1_lambda_layer = Lambda(lambda x: K.max(x, axis=1), output_shape=(EMBEDDING_DIM, ))(q1_time_distributed_layer)
@@ -36,9 +38,7 @@ class QuoraModel(object):
         dense_layer_4 = Dense(200, activation='relu')(bn_layer_4)
         output = Dense(1, activation='sigmoid')(dense_layer_4)
 
-        model = Model(inputs=[input_query_1, input_query_2], outputs=output)
-        model.compile(loss='binary_crossentropy',
-                      optimizer='adam',
-                      metrics=['accuracy'])
-        return model
+        self.model = Model(input=[input_query_1, input_query_2], outputs=output)
+        self.model.compile(loss='binary_crossentropy', optimizer='adam', metrics=['accuracy'])
+        return self.model
 

@@ -6,23 +6,24 @@ from keras.layers import Embedding, Dense, Lambda, Convolution1D, Dropout, \
 from keras import backend as k
 
 EMBEDDING_DIM = 300
-filter_length = 5
-nb_filter = 64
-pool_length = 4
-max_len = 40
+FILTER_LENGTH = 5
+NB_FILTER = 64
+POOL_LEN = 4
+MAX_LEN = 40
 
 
 class DeepNet(object):
     def __init__(self, embedding_matrix):
-        self.model = self.creat_deepnet(embedding_matrix)
+        self.model = None
+        self.embedding_matrix = embedding_matrix
 
-    def creat_deepnet(self, embedding_matrix):
+    def create_deepnet(self):
         input_query_1 = Input(shape=(None,), name='input_query_1', dtype='int32')
         input_query_2 = Input(shape=(None,), name='input_query_2', dtype='int32')
 
-        nb_words = len(embedding_matrix)
-        shared_embedding = Embedding(nb_words, EMBEDDING_DIM, weights=[embedding_matrix],
-                                     input_length=40, trainable=False)
+        nb_words = len(self.embedding_matrix)
+        shared_embedding = Embedding(nb_words, EMBEDDING_DIM, weights=[self.embedding_matrix],
+                                     input_length=MAX_LEN, trainable=False)
 
         q1_embedding = shared_embedding(input_query_1)
         q1_dense = (Dense(EMBEDDING_DIM, activation='relu'))(q1_embedding)
@@ -33,10 +34,10 @@ class DeepNet(object):
         q2_lambda = Lambda(lambda x: k.sum(x, axis=1), output_shape=(EMBEDDING_DIM,))(q2_dense)
 
         q3_embedding = shared_embedding(input_query_1)
-        q3_conv_1d_1 = Convolution1D(nb_filter=nb_filter, filter_length=filter_length, border_mode='valid',
+        q3_conv_1d_1 = Convolution1D(nb_filter=NB_FILTER, filter_length=FILTER_LENGTH, border_mode='valid',
                                      activation='relu', subsample_length=1)(q3_embedding)
         q3_dropout_1 = Dropout(0.2)(q3_conv_1d_1)
-        q3_conv_1d_2 = Convolution1D(nb_filter=nb_filter, filter_length=filter_length, border_mode='valid',
+        q3_conv_1d_2 = Convolution1D(nb_filter=NB_FILTER, filter_length=FILTER_LENGTH, border_mode='valid',
                                      activation='relu', subsample_length=1)(q3_dropout_1)
         q3_global_pooling_1d_1 = GlobalMaxPooling1D()(q3_conv_1d_2)
         q3_dropout_2 = Dropout(0.2)(q3_global_pooling_1d_1)
@@ -45,10 +46,10 @@ class DeepNet(object):
         q3_bn = BatchNormalization()(q3_dropout_3)
 
         q4_embedding = shared_embedding(input_query_2)
-        q4_conv_1d_1 = Convolution1D(nb_filter=nb_filter, filter_length=filter_length, border_mode='valid',
+        q4_conv_1d_1 = Convolution1D(nb_filter=NB_FILTER, filter_length=FILTER_LENGTH, border_mode='valid',
                                      activation='relu', subsample_length=1)(q4_embedding)
         q4_dropout_1 = Dropout(0.2)(q4_conv_1d_1)
-        q4_conv_1d_2 = Convolution1D(nb_filter=nb_filter, filter_length=filter_length, border_mode='valid',
+        q4_conv_1d_2 = Convolution1D(nb_filter=NB_FILTER, filter_length=FILTER_LENGTH, border_mode='valid',
                                      activation='relu', subsample_length=1)(q4_dropout_1)
         q4_global_pooling_1d_1 = GlobalMaxPooling1D()(q4_conv_1d_2)
         q4_dropout_2 = Dropout(0.2)(q4_global_pooling_1d_1)
@@ -90,7 +91,7 @@ class DeepNet(object):
 
         output = Dense(1, activation='sigmoid')(dropout_layer_5)
 
-        model = Model(input=[input_query_1, input_query_2], output=output)
-        model.compile(loss='binary_crossentropy', optimizer='adam',
-                      metrics=['accuracy'])
-        return model
+        self.model = Model(input=[input_query_1, input_query_2], output=output)
+        self.model.compile(loss='binary_crossentropy', optimizer='adam', metrics=['accuracy'])
+
+        return self.model
