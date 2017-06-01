@@ -7,3 +7,4 @@ pymongo
 tqdm
 h5py
 gensim
+yaml

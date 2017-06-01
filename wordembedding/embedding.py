@@ -1,5 +1,5 @@
 # encoding: utf-8
-
+import os
 from itertools import izip
 
 import h5py
@@ -7,6 +7,7 @@ import numpy as np
 import copy
 import math
 
+from config import HERE
 from utils.logger import BaseLogger
 
 
@@ -101,11 +102,12 @@ class H5EmbeddingManager(BaseLogger):
         return W2V
 
 
-class EmbeddingInitEnhancer(object):
+class EmbeddingInitEnhancer(BaseLogger):
     '''
     For more details, read "Counter-fitting Word Vectors to Linguistic Constraints"
     '''
-    def __init__(self, init_word_vectors, vocab, repel_path_list, attract_path_list):
+    def __init__(self, init_word_vectors, vocab, repel_path_list, attract_path_list, **kwargs):
+        super(EmbeddingInitEnhancer, self).__init__(**kwargs)
         self.build_word_vector_map(init_word_vectors, vocab)
         self.init_vocab = vocab
         self.repel_path_list = repel_path_list
@@ -347,9 +349,7 @@ class EmbeddingInitEnhancer(object):
 
 
 if __name__ == '__main__':
-    # path = '/data/GoogleNews-vectors-negative300.h5'
-    path = "../data/word_embedding/total_vector_100.vec.h5"
-    # path = u"../models/zhs_wiki_300d.vec.h5"
+    path = os.path.join(HERE, 'data/glove_word_embedding/glove.840B.300d.txt.h5')
     emb = H5EmbeddingManager(path, mode='in-memory')
     while True:
         word = 'good'
@@ -358,4 +358,3 @@ if __name__ == '__main__':
             print emb[word]
         except KeyError:
             print '%s is not in vocabulary' % word
-        break

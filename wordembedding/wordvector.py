@@ -1,48 +1,58 @@
 # -*- coding: utf-8 -*-
+import os
+from time import strftime, localtime
 
 from gensim.models import word2vec
 
-
-def load_embedding_txt(embedding_file_path):
-    model = word2vec.Word2Vec.load_word2vec_format(embedding_file_path)
-    # model.save(u"/home/jcc/frame_switch_data/wordembedding/total_vector_retrofit_100d.vec")
-    # print model[u'泰国铢']
-    similar_list = model.similar_by_word(u"人民币", topn=50)
-    for (word, simi) in similar_list:
-        print word
-        print simi
-
-    similar_list = model.similar_by_word(u"王力宏", topn=50)
-    for (word, simi) in similar_list:
-        print word
-        print simi
+from config import HERE
 
 
-def trainEmbedding(model_path, corpus_path, dimension, window, min_count):
+def load_embedding(embedding_file_path):
+    try:
+        model = word2vec.Word2Vec.load(embedding_file_path)
+    except Exception, e:
+        model = word2vec.Word2Vec.load_word2vec_format(embedding_file_path)
+    return model
+
+
+def train_embedding(model_path, corpus_path, dimension, window, min_count):
+    """
+    训练词向量
+    :param model_path:
+    :param corpus_path:
+    :param dimension:
+    :param window:
+    :param min_count:
+    :return:
+    """
     sentences = word2vec.Text8Corpus(corpus_path)
     model = word2vec.Word2Vec(sentences, size=dimension, window=window, min_count=min_count)
     model.save(model_path)
 
 
-def getSimilarity(model_path):
-    model = word2vec.Word2Vec.load(model_path)
-    # print model.similarity(u"北京", u"武汉")
-    similar_list = model.similar_by_word(u"北京", topn= 50)
+def get_similarity(model, word):
+    """
+
+    :param model:
+    :param word: 编码为unicode
+    :return:
+    """
+    similar_list = model.similar_by_word(word, topn=50)
     for (word, simi) in similar_list:
         print word
         print simi
 
 if __name__ == '__main__':
     # 训练词向量
-    model_path = u"../../data/wordembedding/w2v_100.vec"
-    corpus_path = u"../../data/wordembedding/data/wordssets"
+    start_time = strftime("%Y-%m-%d-%H:%M:%S", localtime())
+    model_path = os.path.join(HERE, 'data/chinese_word_embedding', 'word_embedding_%s.vec' % start_time)
+    corpus_path = os.path.join(HERE, 'data/corpus/quora')
     dimension = 100
     window = 8
     min_count = 0
-    trainEmbedding(model_path, corpus_path, dimension, window, min_count)
+    train_embedding(model_path, corpus_path, dimension, window, min_count)
 
     # 加载词向量并测试
-    model_path = u"../../data/wordembedding/w2v_100.vec"
-    getSimilarity(model_path)
+    model = load_embedding(model_path)
+    get_similarity(model, u'you')
 
-    load_embedding_txt()
